@@ -283,9 +283,6 @@ fin.push('');
 fin.push('GEOIP,CN,DIRECT');
 fin.push('FINAL,PROXY');
 fin.push('');
-fin.push('[MITM]');
-fin.push('hostname = *.google.cn');
-fin.push('');
 fs.writeFileSync(path.join(R, 'sr-x-fast.conf'), fin.join('\n'), 'utf8');
 console.log('wrote sr-x-fast.conf');
 
