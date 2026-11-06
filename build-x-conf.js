@@ -79,8 +79,17 @@ const IG_PATTERN = '^https?:\\/\\/(i|www)\\.instagram\\.com\\/(api\\/v1\\/(feed|
  * -> 不请求 HomeTimeline -> "帖子无法载入"。
  * 脚本只需要 api.x.com 的 graphql, 主域一条都不能碰。
  */
+/*
+ * 关键: 绝不要把 x.com / twitter.com 主域放进 MITM。
+ * 日志实证(4 份对照):
+ *   关解密 -> chat-ws.x.com 存在, 帖子正常
+ *   开解密 -> chat-ws.x.com 完全消失, viewer.json 重试 3 次, HomeTimeline 从不发出
+ * chat-ws.x.com 是 wss:// WebSocket, 小火箭 MITM 无法正确代理 Upgrade 握手,
+ * 连接建不起来 -> App 卡在初始化 -> "帖子无法载入"。
+ * 时间线走 api.x.com 的 graphql, 只解密它即可。
+ */
 const MITM_ADD = [
-  'api.x.com', 'api.twitter.com', 'x.com', 'twitter.com',
+  'api.x.com', 'api.twitter.com',
   'i.instagram.com'
 ];
 const MITM_APPEND = ['api.x.com', 'api.twitter.com', 'i.instagram.com'];
@@ -212,6 +221,30 @@ console.log('wrote sr-x-adblock-http.conf  base=' + HTTP_BASE);
 const modHttp = mod.map(l => swapTo(l, HTTP_BASE));
 fs.writeFileSync(path.join(R, 'X-AdBlock-http.sgmodule'), modHttp.join('\n'), 'utf8');
 console.log('wrote X-AdBlock-http.sgmodule');
+
+/*
+ * App 可用版: X 官方 App 的 api.x.com 一旦被 MITM, h2 会话会被拆散,
+ * 时间线请求永远发不出(4 份日志实证)。这份配置不碰 X 的 MITM 与脚本,
+ * 只做域名层拦截, 保证 App 正常工作。
+ */
+const appOut = [];
+appOut.push('# Shadowrocket: sr-cnip + 广告域名拦截 (X App 可用版, 不解密 X)');
+appOut.push('# 生成来源: sr-cnip.conf + build-x-conf.js');
+appOut.push(...rulePart);
+appOut.push('');
+appOut.push(...AD_RULES);
+appOut.push('');
+appOut.push(...X_PROXY_RULES);
+appOut.push('');
+appOut.push('GEOIP,CN,DIRECT');
+appOut.push('FINAL,PROXY');
+appOut.push('');
+appOut.push('[MITM]');
+appOut.push('hostname = *.google.cn');
+appOut.push('');
+fs.writeFileSync(path.join(R, 'sr-x-appsafe.conf'), appOut.join('\n'), 'utf8');
+console.log('wrote sr-x-appsafe.conf');
+
 
 /*
  * 分级排查配置: 出问题时逐级启用, 定位到底哪一层打断了 X 的时间线
