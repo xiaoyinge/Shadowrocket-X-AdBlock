@@ -223,6 +223,69 @@ fs.writeFileSync(path.join(R, 'X-AdBlock-http.sgmodule'), modHttp.join('\n'), 'u
 console.log('wrote X-AdBlock-http.sgmodule');
 
 /*
+ * 最终版: 完全剔除 X 的去广告脚本与 MITM。
+ * 保留少量安全无副作用的广告/遥测域 REJECT（这些不影响 App 加载）。
+ * 额外加 X 加速规则。
+ */
+const fin = [];
+fin.push('# Shadowrocket: sr-cnip 基线 + X 加速优化 (无 MITM/无脚本)');
+fin.push('# 生成来源: sr-cnip.conf + build-x-conf.js');
+fin.push('# 说明: X 官方 App 的 api.x.com 被 MITM 会拆散 h2 会话导致无法加载,');
+fin.push('#       故本配置不启用任何 X 解密与脚本, 只在域名层做拦截与加速。');
+fin.push(...rulePart);
+fin.push('');
+fin.push(...AD_RULES);
+fin.push('');
+fin.push(...X_PROXY_RULES);
+fin.push('');
+fin.push('# ---- X 加速: 媒体 CDN 与 API 同出口, 避免会话 IP 漂移触发风控 ----');
+fin.push('DOMAIN-SUFFIX,pscp.tv,PROXY');
+fin.push('DOMAIN-SUFFIX,periscope.tv,PROXY');
+fin.push('DOMAIN-SUFFIX,grok.com,PROXY');
+fin.push('DOMAIN-SUFFIX,grok.x.ai,PROXY');
+fin.push('');
+fin.push('GEOIP,CN,DIRECT');
+fin.push('FINAL,PROXY');
+fin.push('');
+fin.push('[MITM]');
+fin.push('hostname = *.google.cn');
+fin.push('');
+fs.writeFileSync(path.join(R, 'sr-x-fast.conf'), fin.join('\n'), 'utf8');
+console.log('wrote sr-x-fast.conf');
+
+
+/*
+ * 最小 MITM 模块: 用 - 排除语法避开长连接/媒体子域。
+ * 手册: [MITM] hostname 支持前缀 - 排除特定主机名, 如 -*.example.com
+ * 只解密 api.x.com, 其余全部排除。
+ */
+const modMin = [];
+modMin.push('#!name=X 去广告 (仅 GraphQL)');
+modMin.push('#!desc=只解密 api.x.com 的 GraphQL 响应; 显式排除 chat-ws/video/pbs/abs 等长连接与媒体子域, 避免拆散 App 的 h2 会话。模块规则优先于配置文件。');
+modMin.push('#!system=ios');
+modMin.push('#!author=xiaoyinge');
+modMin.push('#!homepage=' + RAW_REPO + '/README.md');
+modMin.push('');
+modMin.push('[Rule]');
+modMin.push(...AD_RULES);
+modMin.push('');
+modMin.push(...X_PROXY_RULES);
+modMin.push('');
+modMin.push('[URL Rewrite]');
+modMin.push('^https?:\\/\\/api\\.(twitter|x)\\.com\\/1\\.1\\/ads\\/ - reject-dict');
+modMin.push('');
+modMin.push('[Script]');
+modMin.push('X-AdBlock = type=http-response, pattern=' + X_PATTERN + ', requires-body=1, max-size=1048576, timeout=30, script-path=' + RAW_REPO + '/x_ads.js');
+modMin.push('');
+modMin.push('# chat-ws.x.com 是 wss:// WebSocket, 被 MITM 拆散后时间线永不加载');
+modMin.push('[MITM]');
+modMin.push('hostname = %APPEND% api.x.com, api.twitter.com');
+modMin.push('');
+fs.writeFileSync(path.join(R, 'X-AdBlock-min.sgmodule'), modMin.join('\n'), 'utf8');
+console.log('wrote X-AdBlock-min.sgmodule');
+
+
+/*
  * App 可用版: X 官方 App 的 api.x.com 一旦被 MITM, h2 会话会被拆散,
  * 时间线请求永远发不出(4 份日志实证)。这份配置不碰 X 的 MITM 与脚本,
  * 只做域名层拦截, 保证 App 正常工作。

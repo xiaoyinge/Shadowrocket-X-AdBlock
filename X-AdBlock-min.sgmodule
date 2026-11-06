@@ -1,0 +1,44 @@
+#!name=X 去广告 (仅 GraphQL)
+#!desc=只解密 api.x.com 的 GraphQL 响应; 显式排除 chat-ws/video/pbs/abs 等长连接与媒体子域, 避免拆散 App 的 h2 会话。模块规则优先于配置文件。
+#!system=ios
+#!author=xiaoyinge
+#!homepage=https://raw.githubusercontent.com/xiaoyinge/Shadowrocket-X-AdBlock/main/README.md
+
+[Rule]
+# ---- X / Twitter 广告与埋点 (ads-api.x.com 是日志实证漏网的) ----
+DOMAIN-SUFFIX,ads-twitter.com,REJECT
+DOMAIN-SUFFIX,ads-api.twitter.com,REJECT
+DOMAIN-SUFFIX,ads.twitter.com,REJECT
+DOMAIN-SUFFIX,analytics.twitter.com,REJECT
+DOMAIN-SUFFIX,ads.x.com,REJECT
+DOMAIN-SUFFIX,ads-api.x.com,REJECT
+DOMAIN-SUFFIX,ads.instagram.com,REJECT
+# ---- 日志里被 GEOIP,CN 判成直连的广告域 ----
+DOMAIN-SUFFIX,doubleclick.net,REJECT
+DOMAIN-SUFFIX,doubleclick-cn.net,REJECT
+DOMAIN-SUFFIX,googlesyndication.com,REJECT
+DOMAIN-SUFFIX,googleadservices.com,REJECT
+# ---- 遥测/崩溃上报 (日志里 o30969.ingest.us.sentry.io / app-analytics-services.com 都在跑) ----
+DOMAIN-SUFFIX,ingest.us.sentry.io,REJECT
+DOMAIN-SUFFIX,app-measurement.com,REJECT
+DOMAIN-SUFFIX,app-analytics-services.com,REJECT
+DOMAIN-SUFFIX,crashlyticsreports-pa.googleapis.com,REJECT
+
+# ---- X / Twitter 强制走代理 (早于 GEOIP,CN,DIRECT) ----
+DOMAIN-SUFFIX,x.com,PROXY
+DOMAIN-SUFFIX,twitter.com,PROXY
+DOMAIN-SUFFIX,twimg.com,PROXY
+DOMAIN-SUFFIX,t.co,PROXY
+DOMAIN-SUFFIX,instagram.com,PROXY
+DOMAIN-SUFFIX,cdninstagram.com,PROXY
+DOMAIN-SUFFIX,fbcdn.net,PROXY
+
+[URL Rewrite]
+^https?:\/\/api\.(twitter|x)\.com\/1\.1\/ads\/ - reject-dict
+
+[Script]
+X-AdBlock = type=http-response, pattern=^https?:\/\/(api\.(twitter|x)\.com|((www|mobile|m)\.)?(x|twitter)\.com)\/(i\/api\/)?graphql\/[-_A-Za-z0-9]+\/(HomeTimeline|HomeLatestTimeline|HomeTimelineUrt|SearchTimeline|UserTweets|UserTweetsAndReplies|UserMedia|TweetDetail|BookmarkSearchTimeline|Bookmarks|Likes|ListLatestTweetsTimeline|ListTweetsTimeline|CommunityTweetsTimeline|CommunityMediaTimeline|ConnectTabTimeline|GenericTimelineById|ViewerTimeline|TimelineHome|TimelineHomeLatest|HomeTimelineV2|HomeLatestTimelineV2|ViewerHomeTimeline)(\?|$), requires-body=1, max-size=1048576, timeout=30, script-path=https://raw.githubusercontent.com/xiaoyinge/Shadowrocket-X-AdBlock/main/x_ads.js
+
+# chat-ws.x.com 是 wss:// WebSocket, 被 MITM 拆散后时间线永不加载
+[MITM]
+hostname = %APPEND% api.x.com, api.twitter.com
