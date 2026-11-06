@@ -21,19 +21,28 @@
     : (typeof window !== 'undefined' && typeof window.$done === 'function' ? window.$done : null);
   if (!finish) { return; }
 
+  /* 空对象会被小火箭当成"响应体为空", 导致 App 侧帖子/图片加载失败; 一律原样回传 */
+  function pass(body) {
+    var out = {};
+    if (resp && typeof resp.status !== 'undefined') out.status = resp.status;
+    if (resp && resp.headers) out.headers = resp.headers;
+    out.body = (body === undefined) ? raw : body;
+    finish(out);
+  }
+
   var raw = resp ? resp.body : null;
-  if (raw === null || raw === undefined || raw === '' || typeof raw !== 'string') { finish({}); return; }
+  if (raw === null || raw === undefined || raw === '' || typeof raw !== 'string') { pass(); return; }
 
   var G = (typeof globalThis !== 'undefined') ? globalThis
     : (typeof window !== 'undefined' ? window : this);
   if (!G.__igads_seen) { try { G.__igads_seen = {}; } catch (e) { G.__igads_seen = {}; } }
   var fp = 'p' + raw.length + '_' + raw.charCodeAt(0) + '_' + raw.slice(-32);
-  if (G.__igads_seen[fp]) { finish({}); return; }
+  if (G.__igads_seen[fp]) { pass(); return; }
   G.__igads_seen[fp] = 1;
 
   var json;
-  try { json = JSON.parse(raw); } catch (e) { finish({}); return; }
-  if (!json || typeof json !== 'object') { finish({}); return; }
+  try { json = JSON.parse(raw); } catch (e) { pass(); return; }
+  if (!json || typeof json !== 'object') { pass(); return; }
 
   var stats = { ads: 0, netego: 0, suggested: 0 };
 
@@ -102,7 +111,7 @@
   if (OPT.debug) { try { console.log('[ig_ads] ' + JSON.stringify(stats)); } catch (e) {} }
 
   var out;
-  try { out = JSON.stringify(json); } catch (e) { finish({}); return; }
-  if (out === raw) { finish({}); return; }
-  finish({ body: out });
+  try { out = JSON.stringify(json); } catch (e) { pass(); return; }
+  if (out === raw) { pass(); return; }
+  pass(out);
 })();

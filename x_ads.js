@@ -44,9 +44,22 @@
     : (typeof window !== 'undefined' && typeof window.$done === 'function' ? window.$done : null);
 
   if (!finish) { return; }
+
+  /*
+   * 关键: 不能回 $done({}) / $done({body:null})
+   * 小火箭把空对象当成"响应体为空", 原 body 被丢掉, App 侧表现为
+   * "帖子暂时无法载入"。任何"不改动"的分支都必须把原 body 原样交回。
+   */
+  function pass(body) {
+    var out = {};
+    if (resp && typeof resp.status !== 'undefined') out.status = resp.status;
+    if (resp && resp.headers) out.headers = resp.headers;
+    out.body = (body === undefined) ? raw : body;
+    finish(out);
+  }
   var raw = resp ? resp.body : null;
-  if (raw === null || raw === undefined || raw === '') { finish({}); return; }
-  if (typeof raw !== 'string') { finish({}); return; }
+  if (raw === null || raw === undefined || raw === '') { pass(); return; }
+  if (typeof raw !== 'string') { pass(); return; }
 
   /* ---------- 幂等守卫: 同一份 body 只处理一次 ---------- */
   var MARK = '__xads_processed__';
@@ -55,12 +68,12 @@
   if (!G.__xads_seen) { try { G.__xads_seen = {}; } catch (e) { G.__xads_seen = {}; } }
   var fp = 'p' + raw.length + '_' + raw.charCodeAt(0) + '_' + raw.charCodeAt(Math.min(64, raw.length - 1)) +
            '_' + raw.slice(-32);
-  if (G.__xads_seen[fp]) { finish({}); return; }
+  if (G.__xads_seen[fp]) { pass(); return; }
   G.__xads_seen[fp] = 1;
 
   var json;
-  try { json = JSON.parse(raw); } catch (e) { finish({}); return; }
-  if (!json || typeof json !== 'object') { finish({}); return; }
+  try { json = JSON.parse(raw); } catch (e) { pass(); return; }
+  if (!json || typeof json !== 'object') { pass(); return; }
 
   var stats = { promoted: 0, whoToFollow: 0, trends: 0, dup: 0 };
 
@@ -254,7 +267,7 @@
   }
 
   var out;
-  try { out = JSON.stringify(json); } catch (e) { finish({}); return; }
-  if (!out || out === raw) { finish({}); return; }
-  finish({ body: out });
+  try { out = JSON.stringify(json); } catch (e) { pass(); return; }
+  if (!out || out === raw) { pass(); return; }
+  pass(out);
 })();

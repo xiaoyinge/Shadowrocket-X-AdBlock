@@ -16,8 +16,8 @@ DOMAIN-SUFFIX,ads.instagram.com,REJECT
 ^https?:\/\/api\.(twitter|x)\.com\/1\.1\/live_pipeline\/ - reject-dict
 
 [Script]
-X-AdBlock = type=http-response, pattern=^https?:\/\/(api\.(twitter|x)\.com|((www|mobile|m)\.)?(x|twitter)\.com)\/(i\/api\/)?graphql\/[-_A-Za-z0-9]+\/(HomeTimeline|HomeLatestTimeline|HomeTimelineUrt|SearchTimeline|UserTweets|UserTweetsAndReplies|UserMedia|TweetDetail|BookmarkSearchTimeline|Bookmarks|Likes|ListLatestTweetsTimeline|ListTweetsTimeline|CommunityTweetsTimeline|CommunityMediaTimeline|ConnectTabTimeline|GenericTimelineById|ViewerTimeline)(\?|$), requires-body=1, max-size=0, script-path=http://192.168.1.104:8088/x_ads.js
-IG-AdBlock = type=http-response, pattern=^https?:\/\/(i|www)\.instagram\.com\/(api\/v1\/(feed|discover|clips|explore|tags)\/|(api\/)?graphql), requires-body=1, max-size=0, script-path=http://192.168.1.104:8088/ig_ads.js
+X-AdBlock = type=http-response, pattern=^https?:\/\/(api\.(twitter|x)\.com|((www|mobile|m)\.)?(x|twitter)\.com)\/(i\/api\/)?graphql\/[-_A-Za-z0-9]+\/(HomeTimeline|HomeLatestTimeline|HomeTimelineUrt|SearchTimeline|UserTweets|UserTweetsAndReplies|UserMedia|TweetDetail|BookmarkSearchTimeline|Bookmarks|Likes|ListLatestTweetsTimeline|ListTweetsTimeline|CommunityTweetsTimeline|CommunityMediaTimeline|ConnectTabTimeline|GenericTimelineById|ViewerTimeline)(\?|$), requires-body=1, max-size=-1, script-path=http://192.168.1.104:8088/x_ads.js
+IG-AdBlock = type=http-response, pattern=^https?:\/\/(i|www)\.instagram\.com\/(api\/v1\/(feed|discover|clips|explore|tags)\/|(api\/)?graphql), requires-body=1, max-size=-1, script-path=http://192.168.1.104:8088/ig_ads.js
 
 [MITM]
 hostname = %APPEND% x.com, twitter.com, api.x.com, api.twitter.com, *.x.com, *.twitter.com, *.twimg.com, *.instagram.com, *.cdninstagram.com, *.fbcdn.net

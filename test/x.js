@@ -9,9 +9,10 @@ const check = (n, c, x) => { if (c) { pass++; console.log('  PASS  ' + n); } els
 // 全新沙箱 = 新的一次请求(独立 globalThis, 与真机每次脚本执行一致)
 function run(body, opts) {
   opts = opts || {};
+  const raw = typeof body === 'string' ? body : JSON.stringify(body);
   let out = null;
   const ctx = {
-    $response: { status: 200, body: typeof body === 'string' ? body : JSON.stringify(body), headers: {} },
+    $response: { status: 200, body: raw, headers: { 'content-type': 'application/json' } },
     $request: { url: opts.url || 'https://x.com/i/api/graphql/abc/HomeTimeline', method: 'GET', headers: {} },
     $done: (v) => { out = v; },
     console
@@ -19,8 +20,13 @@ function run(body, opts) {
   ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(SRC, ctx);
-  if (!out || out.body === undefined) return { unchanged: true, body: null };
-  return { unchanged: false, body: JSON.parse(out.body) };
+  // 脚本必须回流 body（pass 会带原 body），空 body = 把响应吞了，就是线上那个 bug
+  const killed = !out || out.body === undefined || out.body === null;
+  const outBody = killed ? null : out.body;
+  const unchanged = outBody === raw;
+  let parsed = null;
+  if (!killed) { try { parsed = JSON.parse(outBody); } catch (e) { parsed = null; } }
+  return { unchanged, body: parsed, killed, outBody };
 }
 
 /* ---------- 1. 标准 HomeTimeline ---------- */
@@ -122,6 +128,23 @@ function runSR(body) {
 }
 const sr = runSR(tl);
 check('小火箭环境 window.$response 可处理', !!(sr && sr.body) && !/promoted-tweet/.test(sr.body));
+
+/* ---------- 7. 任何分支都必须回流 body, 否则 App 显示"帖子暂时无法载入" ---------- */
+const samples = [
+  ['正常时间线', tl],
+  ['已清理时间线', first.outBody],
+  ['空字符串', ''],
+  ['非 JSON', '<html>busy</html>'],
+  ['JSON 数组', '[]'],
+  ['空对象', '{}'],
+  ['无广告时间线', { data: { entries: [entry('1', 'n', '1')] } }]
+];
+let killedCount = 0;
+for (const [name, sample] of samples) {
+  const res = run(sample);
+  if (res.killed) { killedCount++; console.log('  KILLED  ' + name); }
+}
+check('所有分支都回流 body（不被吞）', killedCount === 0, killedCount + ' 个分支吞了响应');
 
 console.log('');
 console.log('x_ads: ' + pass + ' passed, ' + fail + ' failed');
