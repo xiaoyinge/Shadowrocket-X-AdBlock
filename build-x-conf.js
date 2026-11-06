@@ -30,6 +30,9 @@ const AD_RULES = [
   'DOMAIN-SUFFIX,doubleclick-cn.net,REJECT',
   'DOMAIN-SUFFIX,googlesyndication.com,REJECT',
   'DOMAIN-SUFFIX,googleadservices.com,REJECT',
+  '# ---- X 客户端里会卡住首屏的商业化弹窗 (日志里 paywall/webview 拉了两次) ----',
+  'URL-REGEX,^https?:\\/\\/x\\.com\\/i\\/commerce\\/paywall\\/webview,REJECT',
+  'URL-REGEX,^https?:\\/\\/twitter\\.com\\/i\\/commerce\\/paywall\\/webview,REJECT',
   '# ---- 遥测/崩溃上报 (日志里 o30969.ingest.us.sentry.io / app-analytics-services.com 都在跑) ----',
   'DOMAIN-SUFFIX,ingest.us.sentry.io,REJECT',
   'DOMAIN-SUFFIX,app-measurement.com,REJECT',
@@ -47,14 +50,19 @@ const X_PATTERN = '^https?:\\/\\/(api\\.(twitter|x)\\.com|((www|mobile|m)\\.)?(x
 
 const IG_PATTERN = '^https?:\\/\\/(i|www)\\.instagram\\.com\\/(api\\/v1\\/(feed|discover|clips|explore|tags)\\/|(api\\/)?graphql)';
 
+/*
+ * MITM 只放脚本真正要读 body 的域名。
+ * *.twimg.com / *.cdninstagram.com / *.fbcdn.net 是图片视频 CDN:
+ *   - 脚本根本不处理它们 (pattern 只匹配 graphql)
+ *   - 解密加密视频分片会让播放器无限重试 (日志里 147 条 video-s.twimg.com 就是这样来的)
+ *   - 还会拖慢图片加载、增加耗电
+ */
 const MITM_ADD = [
-  'x.com', 'twitter.com', 'api.x.com', 'api.twitter.com',
-  '*.x.com', '*.twitter.com', '*.twimg.com',
-  '*.instagram.com', '*.cdninstagram.com', '*.fbcdn.net'
+  'api.x.com', 'x.com', 'api.twitter.com', 'twitter.com',
+  'i.instagram.com', 'www.instagram.com'
 ];
-const MITM_APPEND = ['x.com', 'twitter.com', 'api.x.com', 'api.twitter.com',
-  '*.x.com', '*.twitter.com', '*.twimg.com',
-  '*.instagram.com', '*.cdninstagram.com', '*.fbcdn.net'];
+const MITM_APPEND = ['api.x.com', 'x.com', 'api.twitter.com', 'twitter.com',
+  'i.instagram.com', 'www.instagram.com'];
 
 const lines = fs.readFileSync(SRC, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/);
 

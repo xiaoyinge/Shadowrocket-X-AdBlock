@@ -16,6 +16,12 @@
     removePromoted: true,
     removeWhoToFollow: true,
     removePromotedTrends: true,
+    /*
+     * 救援开关: 若删减后 X 出现「帖子暂时无法载入」/ 时间线空白, 把 SAFE_MODE 设为 true
+     * true  = 只删带 promotedMetadata 的推文, 不碰轮播/推荐位/去重 (最小侵入)
+     * false = 完整清理 (默认)
+     */
+    safeMode: false,
     removeCarouselAdModules: true,   // 轮播模块里只要有广告位就整块删（HomeTimeline 的 Carousel 基本都是广告/推荐位）
     dedupeTweets: true,
     debug: false
@@ -209,6 +215,13 @@
 
   function shouldDrop(node) {
     if (isCuration(node)) return false;
+    if (OPT.safeMode) {
+      /* 救援模式: 只按 promotedMetadata / promoted-* entryId 精确删, 其余一律不动 */
+      var sid = entryIdOf(node);
+      if (OPT.removePromoted && /promoted/i.test(sid)) { stats.promoted++; return true; }
+      if (OPT.removePromoted && hasPromoted(tweetResultOf(node))) { stats.promoted++; return true; }
+      return false;
+    }
     if (OPT.removePromoted && isPromotedEntry(node)) { stats.promoted++; return true; }
     if (OPT.removeWhoToFollow && isWhoToFollowEntry(node)) { stats.whoToFollow++; return true; }
     if (OPT.removePromotedTrends && isPromotedTrends(node)) { stats.trends++; return true; }
@@ -236,7 +249,7 @@
         prune(child);
       }
       /* 正向去重: 只留第一次出现的推文 */
-      if (OPT.dedupeTweets && node.length > 1) {
+      if (!OPT.safeMode && OPT.dedupeTweets && node.length > 1) {
         var ids = [];
         for (var j = 0; j < node.length; j++) {
           var eid = entryIdOf(node[j]);
