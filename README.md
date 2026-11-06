@@ -223,6 +223,29 @@ dns-server = system, https://dns.alidns.com/dns-query, https://doh.pub/dns-query
 
 ---
 
+## 导入后怎么让它生效
+
+小火箭**没有「编译配置」这个按钮**，长按/点击配置文件弹出的是：使用配置 / 编辑配置 / 编辑纯文本 / 预览 / 更新 / 重新命名。
+
+| 操作 | 作用 | 什么时候用 |
+|---|---|---|
+| **使用配置** | 切换成这份配置，重新加载规则 | 刚导入后必点 |
+| **更新** | 按配置里的 `update-url` 重新下载 | 我更新了脚本/规则，想同步 |
+| **编辑配置** | UI 改 MITM、URL 重写、脚本、HTTPS 解密 | 改局部设置 |
+| **预览** | 只看不含 MITM/脚本的规则部分 | 核对规则 |
+
+所以：**重新导入 → 点「使用配置」即可**，不用找编译按钮。
+
+本仓库配置里的 `update-url` 指向自己：
+
+```ini
+update-url = https://raw.githubusercontent.com/xiaoyinge/Shadowrocket-X-AdBlock/main/sr-x-adblock.conf
+```
+
+以后我推了新版本，你在手机上点 **更新** 就能同步，不会再被上游 `sr_cnip.conf` 覆盖。
+
+---
+
 ## 排障
 
 | 现象 | 原因 | 处理 |

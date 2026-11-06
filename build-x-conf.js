@@ -74,7 +74,8 @@ if (iRewrite < 0 || iMitm < 0) throw new Error('sr-cnip.conf 缺 [URL Rewrite] �
 const rulePart = lines.slice(0, idxGeoip).map(l => l
   .replace(/,(PROXY|DIRECT|REJECT|REJECT-DICT|REJECT-ARRAY)\s*\/\/.*$/, ',$1')
   // update-url 留着的话, 上游 sr_cnip.conf 一更新就会把 X 脚本和 MITM 整份覆盖掉
-  .replace(/^update-url\s*=.*$/, '# update-url = 已停用（自动更新会覆盖本文件里的 X 去广告脚本与 MITM）')
+  // update-url 指向本仓库: 手机端点「更新」即可同步新版本, 不会被上游覆盖
+  .replace(/^update-url\s*=.*$/, 'update-url = ' + RAW_REPO + '/sr-x-adblock.conf')
   // DNS 日志实证: lb._dns-sd._udp.*.in-addr.arpa 被反复发给公共 DoH, 全部返回空并秒重试 40+ 次
   // system 放最前面, 内网 arpa/Bonjour 反查交给系统 DNS
   .replace(/^dns-server\s*=.*$/, 'dns-server = system, https://dns.alidns.com/dns-query, https://doh.pub/dns-query'));
