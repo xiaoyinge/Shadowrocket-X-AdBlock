@@ -22,12 +22,9 @@
   if (!finish) { return; }
 
   /* 空对象会被小火箭当成"响应体为空", 导致 App 侧帖子/图片加载失败; 一律原样回传 */
+  /* 只回 body, 不回 headers: 原 header 的 content-encoding=gzip 会让 App 解压明文失败 */
   function pass(body) {
-    var out = {};
-    if (resp && typeof resp.status !== 'undefined') out.status = resp.status;
-    if (resp && resp.headers) out.headers = resp.headers;
-    out.body = (body === undefined) ? raw : body;
-    finish(out);
+    finish({ body: (body === undefined) ? raw : body });
   }
 
   var raw = resp ? resp.body : null;

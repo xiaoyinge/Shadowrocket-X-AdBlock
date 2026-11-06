@@ -3,6 +3,20 @@ const path = require('path');
 const vm = require('vm');
 
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'x_ads.js'), 'utf8');
+function run2(body) {
+  const raw = typeof body === 'string' ? body : JSON.stringify(body);
+  let out = null;
+  const ctx = {
+    $response: { status: 200, body: raw, headers: { 'content-type': 'application/json', 'content-encoding': 'gzip', 'content-length': '999' } },
+    $done: (v) => { out = v; },
+    console
+  };
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(SRC, ctx);
+  return out;
+}
+
 let pass = 0, fail = 0;
 const check = (n, c, x) => { if (c) { pass++; console.log('  PASS  ' + n); } else { fail++; console.log('  FAIL  ' + n + (x ? '  -> ' + x : '')); } };
 
@@ -145,6 +159,14 @@ for (const [name, sample] of samples) {
   if (res.killed) { killedCount++; console.log('  KILLED  ' + name); }
 }
 check('所有分支都回流 body（不被吞）', killedCount === 0, killedCount + ' 个分支吞了响应');
+
+/* ---------- 8. 绝不能回 headers: 原 header 的 content-encoding=gzip 会让 App 解压明文失败 ---------- */
+let headerLeak = 0;
+for (const [name, sample] of samples) {
+  const ctxOut = run2(sample);
+  if (ctxOut && ctxOut.headers) { headerLeak++; console.log('  LEAK  ' + name + ' -> headers'); }
+}
+check('任何分支都不回传 headers', headerLeak === 0, headerLeak + ' 个分支带了 headers');
 
 console.log('');
 console.log('x_ads: ' + pass + ' passed, ' + fail + ' failed');

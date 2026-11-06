@@ -16,6 +16,24 @@ const OUT_MOD = path.join(R, 'X-AdBlock.sgmodule');
 const RAW_REPO = process.env.RAW_REPO || 'https://raw.githubusercontent.com/USER/REPO/main/shadowrocket';
 const X_ID = 'U0hsbkFuVXRt';
 
+/*
+ * X / Twitter 主域必须显式 PROXY。
+ * 日志实证: chat-ws.x.com 解析到国内 IP, 命中 GEOIP,CN,DIRECT 走了直连,
+ * 而基线 sr-cnip.conf 里一条 X 规则都没有, 全靠 FINAL 兜底 —— 一旦 DNS 给国内 IP 就失控。
+ * 这几条必须放在 GEOIP,CN,DIRECT 之前。
+ */
+const X_PROXY_RULES = [
+  '# ---- X / Twitter 强制走代理 (早于 GEOIP,CN,DIRECT) ----',
+  'DOMAIN-SUFFIX,x.com,PROXY',
+  'DOMAIN-SUFFIX,twitter.com,PROXY',
+  'DOMAIN-SUFFIX,twimg.com,PROXY',
+  'DOMAIN-SUFFIX,ads-twitter.com,PROXY',
+  'DOMAIN-SUFFIX,t.co,PROXY',
+  'DOMAIN-SUFFIX,instagram.com,PROXY',
+  'DOMAIN-SUFFIX,cdninstagram.com,PROXY',
+  'DOMAIN-SUFFIX,fbcdn.net,PROXY'
+];
+
 const AD_RULES = [
   '# ---- X / Twitter 广告与埋点 (ads-api.x.com 是日志实证漏网的) ----',
   'DOMAIN-SUFFIX,ads-twitter.com,REJECT',
@@ -102,6 +120,8 @@ out.push('# 生成来源: sr-cnip.conf  +  x_ads.js / ig_ads.js');
 out.push(...rulePart);
 out.push('');
 out.push(...AD_RULES);
+  out.push('');
+  out.push(...X_PROXY_RULES);
 out.push('');
 out.push('GEOIP,CN,DIRECT');
 out.push('FINAL,PROXY');
@@ -144,6 +164,8 @@ mod.push('#!system=ios');
 mod.push('');
 mod.push('[Rule]');
 mod.push(...AD_RULES);
+mod.push('');
+mod.push(...X_PROXY_RULES);
 mod.push('');
 mod.push('[URL Rewrite]');
 mod.push('^https?:\\/\\/api\\.(twitter|x)\\.com\\/1\\.1\\/ads\\/ - reject-dict');
@@ -196,6 +218,8 @@ const mkConf = (name, opts) => {
   o.push(...rulePart);
   o.push('');
   o.push(...AD_RULES);
+  o.push('');
+  o.push(...X_PROXY_RULES);
   o.push('');
   o.push('GEOIP,CN,DIRECT');
   o.push('FINAL,PROXY');

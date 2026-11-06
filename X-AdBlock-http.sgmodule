@@ -22,6 +22,16 @@ DOMAIN-SUFFIX,app-measurement.com,REJECT
 DOMAIN-SUFFIX,app-analytics-services.com,REJECT
 DOMAIN-SUFFIX,crashlyticsreports-pa.googleapis.com,REJECT
 
+# ---- X / Twitter 强制走代理 (早于 GEOIP,CN,DIRECT) ----
+DOMAIN-SUFFIX,x.com,PROXY
+DOMAIN-SUFFIX,twitter.com,PROXY
+DOMAIN-SUFFIX,twimg.com,PROXY
+DOMAIN-SUFFIX,ads-twitter.com,PROXY
+DOMAIN-SUFFIX,t.co,PROXY
+DOMAIN-SUFFIX,instagram.com,PROXY
+DOMAIN-SUFFIX,cdninstagram.com,PROXY
+DOMAIN-SUFFIX,fbcdn.net,PROXY
+
 [URL Rewrite]
 ^https?:\/\/api\.(twitter|x)\.com\/1\.1\/ads\/ - reject-dict
 ^https?:\/\/api\.(twitter|x)\.com\/1\.1\/live_pipeline\/ - reject-dict

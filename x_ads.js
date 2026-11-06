@@ -56,12 +56,15 @@
    * 小火箭把空对象当成"响应体为空", 原 body 被丢掉, App 侧表现为
    * "帖子暂时无法载入"。任何"不改动"的分支都必须把原 body 原样交回。
    */
+  /*
+   * 只回 body, 绝不回 headers。
+   * 原响应头里带 content-encoding: gzip 和 content-length(压缩后长度),
+   * 而我们交给 App 的是解压后的明文 JSON —— 带上原 header 后
+   * App 会按 gzip 去解一段明文, 解不开 => "帖子暂时无法载入"。
+   * $done({}) 在小火箭里会被当成空响应, 同样丢 body, 所以也禁用。
+   */
   function pass(body) {
-    var out = {};
-    if (resp && typeof resp.status !== 'undefined') out.status = resp.status;
-    if (resp && resp.headers) out.headers = resp.headers;
-    out.body = (body === undefined) ? raw : body;
-    finish(out);
+    finish({ body: (body === undefined) ? raw : body });
   }
   var raw = resp ? resp.body : null;
   if (raw === null || raw === undefined || raw === '') { pass(); return; }

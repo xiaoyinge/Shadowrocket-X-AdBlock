@@ -246,6 +246,43 @@ update-url = https://raw.githubusercontent.com/xiaoyinge/Shadowrocket-X-AdBlock/
 
 ---
 
+## 故障：开启 HTTPS 解密后「帖子暂时无法载入」，关闭就正常
+
+根因在脚本的返回格式，**不是 MITM，也不是规则**。
+
+| 写法 | 小火箭的行为 | 结果 |
+|---|---|---|
+| `$done({})` | 当作「响应体为空」 | 原 body 被丢弃 → 帖子无法载入 |
+| `$done({ status, headers, body })` | 原 header 带 `content-encoding: gzip` 和压缩后的 `content-length`，但我们给的是**解压后的明文** | App 按 gzip 解明文 → 失败 |
+| `$done({ body })` ✅ | 只替换 body，header 由运行时自行处理 | 正常 |
+
+所以脚本里所有出口（包括「不改动」的直通分支）一律只回 `{ body }`：
+
+```javascript
+function pass(body) {
+  finish({ body: (body === undefined) ? raw : body });
+}
+```
+
+回归测试锁死了这条：`test/x.js` 有一项 `任何分支都不回传 headers`。
+
+## 故障：某些 X 子域走直连（`chat-ws.x.com -> GEOIP,CN,DIRECT`）
+
+基线 `sr-cnip.conf` 里**一条 X 规则都没有**，全靠 `FINAL,PROXY` 兜底。一旦某个子域（如 `chat-ws.x.com`）的 DNS 返回国内 IP，`GEOIP,CN,DIRECT` 就会抢先命中，请求直接出隧道。
+
+现已显式加规则，且顺序严格为 REJECT → PROXY → GEOIP：
+
+```ini
+DOMAIN-SUFFIX,ads-api.x.com,REJECT      # 454
+DOMAIN-SUFFIX,x.com,PROXY               # 468
+DOMAIN-SUFFIX,twitter.com,PROXY
+DOMAIN-SUFFIX,twimg.com,PROXY
+GEOIP,CN,DIRECT                         # 477
+FINAL,PROXY                             # 478
+```
+
+---
+
 ## 排障
 
 | 现象 | 原因 | 处理 |
