@@ -30,9 +30,6 @@ const AD_RULES = [
   'DOMAIN-SUFFIX,doubleclick-cn.net,REJECT',
   'DOMAIN-SUFFIX,googlesyndication.com,REJECT',
   'DOMAIN-SUFFIX,googleadservices.com,REJECT',
-  '# ---- X 客户端里会卡住首屏的商业化弹窗 (日志里 paywall/webview 拉了两次) ----',
-  'URL-REGEX,^https?:\\/\\/x\\.com\\/i\\/commerce\\/paywall\\/webview,REJECT',
-  'URL-REGEX,^https?:\\/\\/twitter\\.com\\/i\\/commerce\\/paywall\\/webview,REJECT',
   '# ---- 遥测/崩溃上报 (日志里 o30969.ingest.us.sentry.io / app-analytics-services.com 都在跑) ----',
   'DOMAIN-SUFFIX,ingest.us.sentry.io,REJECT',
   'DOMAIN-SUFFIX,app-measurement.com,REJECT',
@@ -58,11 +55,10 @@ const IG_PATTERN = '^https?:\\/\\/(i|www)\\.instagram\\.com\\/(api\\/v1\\/(feed|
  *   - 还会拖慢图片加载、增加耗电
  */
 const MITM_ADD = [
-  'api.x.com', 'x.com', 'api.twitter.com', 'twitter.com',
-  'i.instagram.com', 'www.instagram.com'
+  '*.x.com', 'x.com', '*.twitter.com', 'twitter.com',
+  '*.instagram.com', 'i.instagram.com'
 ];
-const MITM_APPEND = ['api.x.com', 'x.com', 'api.twitter.com', 'twitter.com',
-  'i.instagram.com', 'www.instagram.com'];
+const MITM_APPEND = ['*.x.com', 'x.com', '*.twitter.com', 'twitter.com', '*.instagram.com', 'i.instagram.com'];
 
 const lines = fs.readFileSync(SRC, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/);
 
@@ -111,8 +107,8 @@ out.push('GEOIP,CN,DIRECT');
 out.push('FINAL,PROXY');
 out.push('');
 out.push('[URL Rewrite]');
+out.push('# 只拦显式的广告接口; live_pipeline 是 X 的实时流, 返回空 dict 会让 App 无限重连');
 out.push('^https?:\\/\\/api\\.(twitter|x)\\.com\\/1\\.1\\/ads\\/ - reject-dict');
-out.push('^https?:\\/\\/api\\.(twitter|x)\\.com\\/1\\.1\\/live_pipeline\\/ - reject-dict');
 out.push('');
 out.push('[Script]');
 out.push('# 脚本托管: 二选一');
@@ -186,4 +182,50 @@ console.log('wrote sr-x-adblock-http.conf  base=' + HTTP_BASE);
 const modHttp = mod.map(l => swapTo(l, HTTP_BASE));
 fs.writeFileSync(path.join(R, 'X-AdBlock-http.sgmodule'), modHttp.join('\n'), 'utf8');
 console.log('wrote X-AdBlock-http.sgmodule');
+
+/*
+ * 分级排查配置: 出问题时逐级启用, 定位到底哪一层打断了 X 的时间线
+ *   sr-x-1-rules.conf   只加广告拦截规则, 不碰 MITM/脚本  <- 第 1 步
+ *   sr-x-2-script.conf  第 1 步确认没问题后, 加 MITM(通配) + 只挂 HomeTimeline 脚本  <- 第 2 步
+ *   sr-x-adblock.conf   完整版
+ */
+const mkConf = (name, opts) => {
+  const o = [];
+  o.push('# Shadowrocket: ' + name);
+  o.push('# 生成来源: sr-cnip.conf + build-x-conf.js');
+  o.push(...rulePart);
+  o.push('');
+  o.push(...AD_RULES);
+  o.push('');
+  o.push('GEOIP,CN,DIRECT');
+  o.push('FINAL,PROXY');
+  if (opts.rewrite) {
+    o.push('');
+    o.push('[URL Rewrite]');
+    o.push('^https?:\\/\\/api\\.(twitter|x)\\.com\\/1\\.1\\/ads\\/ - reject-dict');
+  }
+  if (opts.script) {
+    o.push('');
+    o.push('[Script]');
+    o.push('X-AdBlock = type=http-response, pattern=' + opts.script + ', requires-body=1, max-size=-1, script-path=' + RAW_REPO + '/x_ads.js');
+  }
+  if (opts.mitm) {
+    o.push('');
+    o.push('[MITM]');
+    o.push('hostname = ' + opts.mitm.join(','));
+  }
+  o.push('');
+  fs.writeFileSync(path.join(R, name), o.join('\n'), 'utf8');
+  console.log('wrote ' + name);
+};
+
+const CORE_PATTERN = '^https?:\\/\\/api\\.x\\.com\\/graphql\\/[-_A-Za-z0-9]+\\/(HomeTimeline|HomeLatestTimeline)(\\?|$)';
+
+mkConf('sr-x-1-rules.conf', {});
+mkConf('sr-x-2-script.conf', {
+  rewrite: true,
+  script: CORE_PATTERN,
+  mitm: ['*.google.cn', '*.x.com', 'x.com']
+});
+
 console.log('X_ID(ref)=' + X_ID);
