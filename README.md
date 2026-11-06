@@ -181,6 +181,48 @@ RESULT: 19 passed, 0 failed
 
 ---
 
+## 实测日志复核（2026-11-06 15:56）
+
+用收到的 proxy.db / dns.db 核对了 62 条连接 + 55 条 DNS 记录，发现三处问题，已修。
+
+### 1. 广告域漏网：`ads-api.x.com`
+
+日志原文：
+
+```
+https://ads-api.x.com/12/measurement/dcm_local_id   ->  FINAL,PROXY
+```
+
+配置里只有 `ads-api.twitter.com`，没有 `.x.com` 版本，所以每次都走代理去拉广告测量。已补：
+
+```ini
+DOMAIN-SUFFIX,ads-api.x.com,REJECT
+```
+
+### 2. 广告域被判成国内直连
+
+`googleads.g.doubleclick-cn.net:443 -> GEOIP,CN,DIRECT` —— 因为解析到 `114.250.64.42`（国内 IP），命中 `GEOIP,CN,DIRECT` 就直连了。上游 sr-cnip 里根本没有 doubleclick 相关规则。已补 4 条 REJECT，放在 `GEOIP,CN,DIRECT` 之前。
+
+### 3. DNS 空转 40+ 次
+
+`lb._dns-sd._udp.44.235.39.100.in-addr.arpa` 在 30 秒里被查了 **40 多次**，全部返回空，`elapsed=0`。原因是 `dns-server` 只写了两个公共 DoH，内网反向解析被丢给它们，秒失败秒重试。已改成：
+
+```ini
+dns-server = system, https://dns.alidns.com/dns-query, https://doh.pub/dns-query
+```
+
+### 4. 遥测域
+
+`o30969.ingest.us.sentry.io`、`app-analytics-services.com`、`crashlyticsreports-pa.googleapis.com` 都在跑。注意 `sentry.io` 不能整域拦——上游第 186 行有 `disney.my.sentry.io,PROXY`，会冲突。所以只拦 X 的 ingest 子域。
+
+### 日志证明的另一件事
+
+62 条连接里**没有一条 `api.x.com/graphql/*/HomeTimeline`**，全是 `flow/viewer.json`、`grokAccountJwtQuery`、`xLegacySubscriptionsInventoryQuery` 这类启动接口，加上大量 `video-s.twimg.com` 视频分片。
+
+这说明：**X 首页时间线根本没走到脚本**。不是脚本没删干净，是那个请求压根没出现——大概率是你打开 App 后卡在「帖子暂时无法载入」，时间线接口没成功发起。先按上面修完配置、确认能正常刷新，再看广告。
+
+---
+
 ## 排障
 
 | 现象 | 原因 | 处理 |

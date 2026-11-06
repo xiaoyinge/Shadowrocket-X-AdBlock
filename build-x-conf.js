@@ -17,13 +17,24 @@ const RAW_REPO = process.env.RAW_REPO || 'https://raw.githubusercontent.com/USER
 const X_ID = 'U0hsbkFuVXRt';
 
 const AD_RULES = [
-  '# ---- X / Twitter 广告与埋点 ----',
+  '# ---- X / Twitter 广告与埋点 (ads-api.x.com 是日志实证漏网的) ----',
   'DOMAIN-SUFFIX,ads-twitter.com,REJECT',
   'DOMAIN-SUFFIX,ads-api.twitter.com,REJECT',
   'DOMAIN-SUFFIX,ads.twitter.com,REJECT',
   'DOMAIN-SUFFIX,analytics.twitter.com,REJECT',
   'DOMAIN-SUFFIX,ads.x.com,REJECT',
-  'DOMAIN-SUFFIX,ads.instagram.com,REJECT'
+  'DOMAIN-SUFFIX,ads-api.x.com,REJECT',
+  'DOMAIN-SUFFIX,ads.instagram.com,REJECT',
+  '# ---- 日志里被 GEOIP,CN 判成直连的广告域 ----',
+  'DOMAIN-SUFFIX,doubleclick.net,REJECT',
+  'DOMAIN-SUFFIX,doubleclick-cn.net,REJECT',
+  'DOMAIN-SUFFIX,googlesyndication.com,REJECT',
+  'DOMAIN-SUFFIX,googleadservices.com,REJECT',
+  '# ---- 遥测/崩溃上报 (日志里 o30969.ingest.us.sentry.io / app-analytics-services.com 都在跑) ----',
+  'DOMAIN-SUFFIX,ingest.us.sentry.io,REJECT',
+  'DOMAIN-SUFFIX,app-measurement.com,REJECT',
+  'DOMAIN-SUFFIX,app-analytics-services.com,REJECT',
+  'DOMAIN-SUFFIX,crashlyticsreports-pa.googleapis.com,REJECT'
 ];
 
 const X_PATTERN = '^https?:\\/\\/(api\\.(twitter|x)\\.com|((www|mobile|m)\\.)?(x|twitter)\\.com)\\/' +
@@ -63,7 +74,10 @@ if (iRewrite < 0 || iMitm < 0) throw new Error('sr-cnip.conf 缺 [URL Rewrite] �
 const rulePart = lines.slice(0, idxGeoip).map(l => l
   .replace(/,(PROXY|DIRECT|REJECT|REJECT-DICT|REJECT-ARRAY)\s*\/\/.*$/, ',$1')
   // update-url 留着的话, 上游 sr_cnip.conf 一更新就会把 X 脚本和 MITM 整份覆盖掉
-  .replace(/^update-url\s*=.*$/, '# update-url = 已停用（自动更新会覆盖本文件里的 X 去广告脚本与 MITM）'));
+  .replace(/^update-url\s*=.*$/, '# update-url = 已停用（自动更新会覆盖本文件里的 X 去广告脚本与 MITM）')
+  // DNS 日志实证: lb._dns-sd._udp.*.in-addr.arpa 被反复发给公共 DoH, 全部返回空并秒重试 40+ 次
+  // system 放最前面, 内网 arpa/Bonjour 反查交给系统 DNS
+  .replace(/^dns-server\s*=.*$/, 'dns-server = system, https://dns.alidns.com/dns-query, https://doh.pub/dns-query'));
 const tailNote = '# Made with Love from https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever';
 
 let mitmHosts = [];

@@ -3,13 +3,24 @@
 #!system=ios
 
 [Rule]
-# ---- X / Twitter 广告与埋点 ----
+# ---- X / Twitter 广告与埋点 (ads-api.x.com 是日志实证漏网的) ----
 DOMAIN-SUFFIX,ads-twitter.com,REJECT
 DOMAIN-SUFFIX,ads-api.twitter.com,REJECT
 DOMAIN-SUFFIX,ads.twitter.com,REJECT
 DOMAIN-SUFFIX,analytics.twitter.com,REJECT
 DOMAIN-SUFFIX,ads.x.com,REJECT
+DOMAIN-SUFFIX,ads-api.x.com,REJECT
 DOMAIN-SUFFIX,ads.instagram.com,REJECT
+# ---- 日志里被 GEOIP,CN 判成直连的广告域 ----
+DOMAIN-SUFFIX,doubleclick.net,REJECT
+DOMAIN-SUFFIX,doubleclick-cn.net,REJECT
+DOMAIN-SUFFIX,googlesyndication.com,REJECT
+DOMAIN-SUFFIX,googleadservices.com,REJECT
+# ---- 遥测/崩溃上报 (日志里 o30969.ingest.us.sentry.io / app-analytics-services.com 都在跑) ----
+DOMAIN-SUFFIX,ingest.us.sentry.io,REJECT
+DOMAIN-SUFFIX,app-measurement.com,REJECT
+DOMAIN-SUFFIX,app-analytics-services.com,REJECT
+DOMAIN-SUFFIX,crashlyticsreports-pa.googleapis.com,REJECT
 
 [URL Rewrite]
 ^https?:\/\/api\.(twitter|x)\.com\/1\.1\/ads\/ - reject-dict
