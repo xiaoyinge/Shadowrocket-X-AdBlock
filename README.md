@@ -283,6 +283,40 @@ FINAL,PROXY                             # 478
 
 ---
 
+## 故障：开解密就「帖子无法载入」，关解密正常
+
+已定位到 **MITM 范围**，不是脚本也不是规则。两组对照日志（16:35 关解密 / 16:36 开解密）：
+
+| | 关解密 (q1) | 开解密 (q2) |
+|---|---|---|
+| 连接数 | 51 | 64 |
+| https 完整 URL | **0** | **15** |
+| HomeTimeline | 0 | **0** |
+| flow/viewer.json | — | 3 次（重试） |
+| 结果 | 能正常刷 | 帖子无法载入 |
+
+关键：q2 里 15 条 https 都解密成功了（含 api.x.com 的 9 条 graphql），但 **HomeTimeline 一条都没有**，`flow/viewer.json` 还重试了 3 次。接口通了，App 却不发时间线请求。
+
+原因是 `x.com` / `twitter.com` **主域**也被放进了 MITM。主域承载 App 内嵌 WebView（登录、付费墙、manifest），解密后证书链换成自签，iOS 拒绝加载：
+
+```text
+authenticate_web_view 失败 → 登录态降级 → 不请求 HomeTimeline → 帖子无法载入
+```
+
+### 修复
+
+MITM 只留脚本真正需要的 api 子域：
+
+```ini
+hostname = *.google.cn,api.x.com,api.twitter.com,i.instagram.com
+```
+
+`x.com` / `twitter.com` 主域**走代理但绝不解密**（规则层 `DOMAIN-SUFFIX,x.com,PROXY` 保留）。
+
+顺带修了 `X_PROXY_RULES` 里 `ads-twitter.com` 同时出现在 REJECT 和 PROXY 的冲突，现在重复规则 0 条。
+
+---
+
 ## 排障
 
 | 现象 | 原因 | 处理 |
