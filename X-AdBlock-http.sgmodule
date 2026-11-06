@@ -26,7 +26,6 @@ DOMAIN-SUFFIX,crashlyticsreports-pa.googleapis.com,REJECT
 DOMAIN-SUFFIX,x.com,PROXY
 DOMAIN-SUFFIX,twitter.com,PROXY
 DOMAIN-SUFFIX,twimg.com,PROXY
-DOMAIN-SUFFIX,ads-twitter.com,PROXY
 DOMAIN-SUFFIX,t.co,PROXY
 DOMAIN-SUFFIX,instagram.com,PROXY
 DOMAIN-SUFFIX,cdninstagram.com,PROXY
@@ -41,4 +40,4 @@ X-AdBlock = type=http-response, pattern=^https?:\/\/(api\.(twitter|x)\.com|((www
 IG-AdBlock = type=http-response, pattern=^https?:\/\/(i|www)\.instagram\.com\/(api\/v1\/(feed|discover|clips|explore|tags)\/|(api\/)?graphql), requires-body=1, max-size=-1, script-path=http://192.168.1.104:8088/ig_ads.js
 
 [MITM]
-hostname = %APPEND% *.x.com, x.com, *.twitter.com, twitter.com, *.instagram.com, i.instagram.com
+hostname = %APPEND% api.x.com, api.twitter.com, i.instagram.com

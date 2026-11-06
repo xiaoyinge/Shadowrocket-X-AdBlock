@@ -27,7 +27,6 @@ const X_PROXY_RULES = [
   'DOMAIN-SUFFIX,x.com,PROXY',
   'DOMAIN-SUFFIX,twitter.com,PROXY',
   'DOMAIN-SUFFIX,twimg.com,PROXY',
-  'DOMAIN-SUFFIX,ads-twitter.com,PROXY',
   'DOMAIN-SUFFIX,t.co,PROXY',
   'DOMAIN-SUFFIX,instagram.com,PROXY',
   'DOMAIN-SUFFIX,cdninstagram.com,PROXY',
@@ -72,11 +71,18 @@ const IG_PATTERN = '^https?:\\/\\/(i|www)\\.instagram\\.com\\/(api\\/v1\\/(feed|
  *   - 解密加密视频分片会让播放器无限重试 (日志里 147 条 video-s.twimg.com 就是这样来的)
  *   - 还会拖慢图片加载、增加耗电
  */
+/*
+ * 只解密 api 子域。
+ * 日志实证(q2 16:36): 把 x.com / twitter.com 主域也解密后,
+ * App 内嵌 WebView 的 authenticate_web_view 证书链失败 -> 登录态降级
+ * -> 不请求 HomeTimeline -> "帖子无法载入"。
+ * 脚本只需要 api.x.com 的 graphql, 主域一条都不能碰。
+ */
 const MITM_ADD = [
-  '*.x.com', 'x.com', '*.twitter.com', 'twitter.com',
-  '*.instagram.com', 'i.instagram.com'
+  'api.x.com', 'api.twitter.com',
+  'i.instagram.com'
 ];
-const MITM_APPEND = ['*.x.com', 'x.com', '*.twitter.com', 'twitter.com', '*.instagram.com', 'i.instagram.com'];
+const MITM_APPEND = ['api.x.com', 'api.twitter.com', 'i.instagram.com'];
 
 const lines = fs.readFileSync(SRC, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/);
 
@@ -249,7 +255,7 @@ mkConf('sr-x-1-rules.conf', {});
 mkConf('sr-x-2-script.conf', {
   rewrite: true,
   script: CORE_PATTERN,
-  mitm: ['*.google.cn', '*.x.com', 'x.com']
+  mitm: ['*.google.cn', 'api.x.com']
 });
 
 console.log('X_ID(ref)=' + X_ID);
