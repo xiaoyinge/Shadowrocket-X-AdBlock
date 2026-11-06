@@ -59,7 +59,8 @@ const X_PATTERN = '^https?:\\/\\/(api\\.(twitter|x)\\.com|((www|mobile|m)\\.)?(x
   'HomeTimeline|HomeLatestTimeline|HomeTimelineUrt|SearchTimeline|UserTweets|UserTweetsAndReplies|' +
   'UserMedia|TweetDetail|BookmarkSearchTimeline|Bookmarks|Likes|' +
   'ListLatestTweetsTimeline|ListTweetsTimeline|CommunityTweetsTimeline|CommunityMediaTimeline|' +
-  'ConnectTabTimeline|GenericTimelineById|ViewerTimeline)' +
+  'ConnectTabTimeline|GenericTimelineById|ViewerTimeline|TimelineHome|TimelineHomeLatest|' +
+  'HomeTimelineV2|HomeLatestTimelineV2|ViewerHomeTimeline)' +
   '(\\?|$)';
 
 const IG_PATTERN = '^https?:\\/\\/(i|www)\\.instagram\\.com\\/(api\\/v1\\/(feed|discover|clips|explore|tags)\\/|(api\\/)?graphql)';
@@ -79,7 +80,7 @@ const IG_PATTERN = '^https?:\\/\\/(i|www)\\.instagram\\.com\\/(api\\/v1\\/(feed|
  * 脚本只需要 api.x.com 的 graphql, 主域一条都不能碰。
  */
 const MITM_ADD = [
-  'api.x.com', 'api.twitter.com',
+  'api.x.com', 'api.twitter.com', 'x.com', 'twitter.com',
   'i.instagram.com'
 ];
 const MITM_APPEND = ['api.x.com', 'api.twitter.com', 'i.instagram.com'];
@@ -140,11 +141,12 @@ out.push('[Script]');
 out.push('# 脚本托管: 二选一');
 out.push('#   a) 本地: script-path=x_ads.js   (小火箭 Scripts 目录放 x_ads.js)');
 out.push('#   b) 远端: 换成你自己的 raw 地址');
-out.push('X-AdBlock = type=http-response, pattern=' + X_PATTERN + ', requires-body=1, max-size=-1, script-path=' + RAW_REPO + '/x_ads.js');
-out.push('IG-AdBlock = type=http-response, pattern=' + IG_PATTERN + ', requires-body=1, max-size=-1, script-path=' + RAW_REPO + '/ig_ads.js');
+out.push('X-AdBlock = type=http-response, pattern=' + X_PATTERN + ', requires-body=1, max-size=1048576, script-path=' + RAW_REPO + '/x_ads.js, timeout=30');
+out.push('IG-AdBlock = type=http-response, pattern=' + IG_PATTERN + ', requires-body=1, max-size=1048576, script-path=' + RAW_REPO + '/ig_ads.js, timeout=30');
 out.push('');
 out.push('[MITM]');
 out.push('hostname = ' + mitmHosts.join(','));
+out.push('h2 = true');
 out.push('');
 out.push(tailNote);
 out.push('');

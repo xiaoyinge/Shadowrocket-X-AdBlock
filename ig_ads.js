@@ -23,12 +23,11 @@
 
   /* 空对象会被小火箭当成"响应体为空", 导致 App 侧帖子/图片加载失败; 一律原样回传 */
   /* 只回 body, 不回 headers: 原 header 的 content-encoding=gzip 会让 App 解压明文失败 */
-  function pass(body) {
-    finish({ body: (body === undefined) ? raw : body });
-  }
+  function passRaw() { finish({}); }
+  function pass(body) { finish({ body: (body === undefined) ? raw : body }); }
 
   var raw = resp ? resp.body : null;
-  if (raw === null || raw === undefined || raw === '' || typeof raw !== 'string') { pass(); return; }
+  if (raw === null || raw === undefined || raw === '' || typeof raw !== 'string') { passRaw(); return; }
 
   var G = (typeof globalThis !== 'undefined') ? globalThis
     : (typeof window !== 'undefined' ? window : this);

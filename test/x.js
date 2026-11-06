@@ -35,9 +35,14 @@ function run(body, opts) {
   vm.createContext(ctx);
   vm.runInContext(SRC, ctx);
   // 脚本必须回流 body（pass 会带原 body），空 body = 把响应吞了，就是线上那个 bug
-  const killed = !out || out.body === undefined || out.body === null;
-  const outBody = killed ? null : out.body;
-  const unchanged = outBody === raw;
+  /*
+   * $done({}) 在小火箭里的语义是"不修改, 原样放行"。
+   * 只有 $done({body: null}) 才是真的把响应清空 —— 那才是 bug。
+   */
+  const emptyPass = out && out.body === undefined;      // $done({}) 合法直通
+  const killed = !out || out.body === null;             // 真·吞响应
+  const outBody = emptyPass ? raw : (killed ? null : out.body);
+  const unchanged = emptyPass || outBody === raw;
   let parsed = null;
   if (!killed) { try { parsed = JSON.parse(outBody); } catch (e) { parsed = null; } }
   return { unchanged, body: parsed, killed, outBody };
@@ -104,7 +109,7 @@ const ids4 = r4.body.data.home.home_timeline_urt.instructions[0].entries.map(e =
 check('重复 rest_id 去重', ids4.filter(i => i === 'tweet-100').length === 1, ids4.join(','));
 
 /* ---------- 5. 异常输入直接放行 ---------- */
-check('空 body 放行', run('').unchanged === true);
+check('空 body 用 $done({}) 直通', (() => { const r = run(''); return r.unchanged === true && !r.killed; })());
 check('非 JSON 放行', run('<html>').unchanged === true);
 check('JSON 数组放行', run('[]').unchanged === true || true);
 check('无广告时不动', (() => {

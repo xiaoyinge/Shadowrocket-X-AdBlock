@@ -65,7 +65,8 @@ for i, ln in enumerate(lines, 1):
             elif sp and not sp.startswith('local/'):
                 warns.append(f'L{i} {name.strip()} script-path 非常规: {sp}')
     elif sec == 'MITM':
-        if not s.startswith('hostname'): warns.append(f'L{i} MITM 未知键: {s[:60]}')
+        if not (s.startswith('hostname') or s.startswith('h2') or s.startswith('skip-server-cert-verify')):
+            warns.append(f'L{i} MITM 未知键: {s[:60]}')
 
 # 策略值统计
 pols = collections.Counter(r[3] for r in rules if r[3])

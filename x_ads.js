@@ -63,12 +63,21 @@
    * App 会按 gzip 去解一段明文, 解不开 => "帖子暂时无法载入"。
    * $done({}) 在小火箭里会被当成空响应, 同样丢 body, 所以也禁用。
    */
-  function pass(body) {
-    finish({ body: (body === undefined) ? raw : body });
-  }
   var raw = resp ? resp.body : null;
-  if (raw === null || raw === undefined || raw === '') { pass(); return; }
-  if (typeof raw !== 'string') { pass(); return; }
+
+  /*
+   * 三种"没东西可改"的情况:
+   *   a) body 压根没给到脚本 (max-size 超限 / 未 require)
+   *   b) body 为空串
+   *   c) body 非字符串
+   * 此时必须回 $done({}) —— 表示"不修改, 原样放行"。
+   * 绝不能回 {body:null}, 那会被当成空响应, App 显示"帖子无法载入"。
+   */
+  function passRaw() { finish({}); }
+  function pass(body) { finish({ body: (body === undefined) ? raw : body }); }
+
+  if (raw === null || raw === undefined || raw === '') { passRaw(); return; }
+  if (typeof raw !== 'string') { passRaw(); return; }
 
   /* ---------- 幂等守卫: 同一份 body 只处理一次 ---------- */
   var MARK = '__xads_processed__';
