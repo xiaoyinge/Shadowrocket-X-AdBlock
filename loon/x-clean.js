@@ -18,14 +18,20 @@ var OPT = {
   debug: arg.debug === true
 };
 
+// 任何路径都必须调用 $done，否则 Loon 会一直等到超时，表现就是「帖子暂时无法载入」
+var finished = false;
+
 var MAX_DEPTH = 60;
 
 /* ---------------- 入口 ---------------- */
+var doneCalled = false;
 try {
   main();
 } catch (e) {
-  log("脚本异常，已放行原始响应：" + e);
   finish({});
+} finally {
+  // 双保险：main 内部任何分支漏掉 finish 时，这里补一次
+  if (!finished) finish({});
 }
 
 function main() {
@@ -214,10 +220,13 @@ function eachNode(root, fn) {
 }
 
 function log(msg) {
+  if (!OPT.debug) return;
   try { console.log("[X-Optimize] " + msg); } catch (e) {}
 }
 
 function finish(v) {
+  if (finished) return;
+  finished = true;
   try {
     if (typeof $done === "function") $done(v);
   } catch (e) {}
