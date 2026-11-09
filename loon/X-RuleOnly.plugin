@@ -1,5 +1,5 @@
 #!name = X 原生 App 安全版（只封域名，零风险）
-#!desc = 只有域名规则，不开 Mitm、不跑脚本、不改任何内容。对 X 原生 App 完全无侵入，装了就生效，不会造成任何加载失败。
+#!desc = 只有域名规则，不开 Mitm、不跑脚本、不改任何内容、不加任何 General 参数。对 X 原生 App 零侵入，不会造成加载失败。
 #!author = YG
 #!homepage = https://github.com/xiaoyinge/Shadowrocket-X-AdBlock
 #!date = 2026-11-09
@@ -8,18 +8,24 @@
 #!loon_version = 3.5.1(983)
 
 # ============================================================
-# 为什么有这个版本
-# 实测：只要插件对 api.x.com 开了 Mitm，X iOS 原生 App 就无法加载帖子，
-#       因为原生 App 对 api.x.com 做了证书校验，不认 Loon 的 CA。
-# 所以原生 App 只能用「封域名」这条路：广告投放、埋点、统计的域名
-# 都是独立域名，封掉不影响正文和时间线。
+# 为什么只有域名规则
+# X iOS 原生 App 的时间线走 QUIC/HTTP3，Loon 对 api.x.com 开 Mitm 后
+# 会破坏这条链路，表现就是「帖子暂时无法载入」。所以原生 App 上：
+#   不要开 Mitm、不要挂 Script、不要改 body
+# 只剩域名拦截这条路：广告投放、埋点、统计都是独立域名，
+# 封掉不影响正文和时间线。
+#
+# 本版本没有任何 [General] 参数。特别地，不要加 skip-proxy：
+# 让 pbs.twimg.com / video.twimg.com / abs.twimg.com 绕过代理直连，
+# 在国内会直接失败，同样表现为帖子加载不出。
+#
 # 代价：时间线里的原生插入式推广（promotedMetadata）还在，
 #       但来源域名被封后大部分会变成空白位或不再请求。
 # ============================================================
 
 [Argument]
 enable_ads = switch,true,tag=拦截广告投放域名,desc=封掉 ads-api / ads / ads-twitter 系列域名
-telemetry = switch,true,tag=拦截埋点统计域名,desc=封掉 analytics / ads-twitter 统计域名
+telemetry = switch,true,tag=拦截埋点统计域名,desc=封掉 analytics 系列统计域名
 
 [Rule]
 DOMAIN-SUFFIX,ads-api.x.com,REJECT
@@ -31,7 +37,3 @@ DOMAIN-SUFFIX,analytics.x.com,REJECT
 DOMAIN-SUFFIX,analytics.twitter.com,REJECT
 DOMAIN-SUFFIX,tm.targeting.api.x.com,REJECT
 DOMAIN-SUFFIX,cm.g.doubleclick.net,REJECT
-
-# 跳过 TUN：图片/视频 CDN 直连，减少代理绕行，加载更快
-[General]
-skip-proxy = pbs.twimg.com,video.twimg.com,abs.twimg.com
