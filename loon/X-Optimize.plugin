@@ -47,7 +47,7 @@ request if ${telemetry} == true && ${url} ~= /\/live_pipeline\/events/ then reje
 
 [Script]
 # GraphQL 时间线类接口统一交给脚本处理，按 $argument 开关工作
-response if ${enable_ads} == true && ${url} ~= /^https?:\/\/(?:x\.com|twitter\.com|api\.x\.com|api\.twitter\.com)\/i\/api\/graphql\/[^\/]+\/(?:HomeTimeline|HomeLatestTimeline|TweetDetail|SearchTimeline|ListLatestTweetsTimeline|ListTweetsTimeline|CommunityTweetsTimeline|CommunityTweetSearchModuleQuery|UserTweets|UserTweetsAndReplies|UserMedia|ConnectTabTimeline|NotificationsTimeline|Bookmarks|GenericTimelineById|Guide)/ then script("https://cdn.jsdelivr.net/gh/xiaoyinge/Shadowrocket-X-AdBlock@main/loon/x-clean.js", {${enable_ads}, ${hide_recs}, ${telemetry}}) with requires_body=true, timeout=${script_timeout}, tag="X 去广告"
+response if ${enable_ads} == true && ${url} ~= /^https?:\/\/(?:x\.com|twitter\.com|api\.x\.com|api\.twitter\.com)\/(?:i\/api\/graphql|graphql)\/[^\/]+\/(?:HomeTimeline|HomeLatestTimeline|TweetDetail|SearchTimeline|ListLatestTweetsTimeline|ListTweetsTimeline|CommunityTweetsTimeline|CommunityTweetSearchModuleQuery|UserTweets|UserTweetsAndReplies|UserMedia|ConnectTabTimeline|NotificationsTimeline|Bookmarks|GenericTimelineById|Guide)/ then script("https://cdn.jsdelivr.net/gh/xiaoyinge/Shadowrocket-X-AdBlock@main/loon/x-clean.js", {${enable_ads}, ${hide_recs}, ${telemetry}}) with requires_body=true, timeout=${script_timeout}, tag="X 去广告"
 
 [Mitm]
 hostname = x.com,twitter.com,api.x.com,api.twitter.com
