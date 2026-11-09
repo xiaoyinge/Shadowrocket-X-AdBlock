@@ -1,0 +1,19 @@
+#!name = X 测试 A：只开 Mitm（不改任何东西）
+#!desc = 只有 [Mitm] 一段，没有 Script、没有 Rewrite、没有 Rule。用来判断「X 打不开帖子」是不是 Mitm 造成的。
+#!author = YG
+#!date = 2026-11-09
+#!tag = 测试,X
+#!type = normal
+#!loon_version = 3.5.1(983)
+
+# ============================================================
+# 判读方法
+# 启用后回 X 下拉刷新：
+#   X 打不开帖子 → Mitm 是元凶。X 原生 App 对 api.x.com 做了证书校验，
+#                  Loon 的证书它也认不通过。这种情况下原生 App 只能靠域名规则，
+#                  不能走 Mitm 改内容。测完请立刻关掉本插件。
+#   X 正常打开   → Mitm 没问题，问题在 Script。去测 B（X-Probe）。
+# ============================================================
+
+[Mitm]
+hostname = api.x.com,x.com,twitter.com,api.twitter.com
