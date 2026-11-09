@@ -1,0 +1,17 @@
+#!name = X 测试 2：只有 skip-proxy
+#!desc = 只有 [General] 的 skip-proxy 一行，没有任何 Rule / Mitm / Script。用来验证「skip-proxy 把图片 CDN 踢出代理」是不是导致打不开的原因。
+#!author = YG
+#!date = 2026-11-09
+#!tag = 测试,X
+#!type = normal
+#!loon_version = 3.5.1(983)
+
+# ============================================================
+# 判读方法
+# 只启用本插件，回 X 下拉刷新：
+#   打不开 → 是 skip-proxy 造成的（图片 CDN 直连不通，时间线等图片超时）
+#   正常   → skip-proxy 无罪，问题在 REJECT 列表
+# ============================================================
+
+[General]
+skip-proxy = pbs.twimg.com,video.twimg.com,abs.twimg.com
