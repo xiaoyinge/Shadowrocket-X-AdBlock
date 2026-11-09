@@ -1,0 +1,53 @@
+#!name = X（Twitter）去广告 · 网络优化
+#!desc = 移除 X 时间线 / 评论区 / 搜索页 / 趋势页的推广内容，拦截广告投放域名与 Jot 埋点上报，减少无效流量。
+#!author = YG
+#!homepage = https://github.com/USER/REPO
+#!date = 2026-11-09
+#!tag = 去广告,X,优化
+#!type = normal
+#!loon_version = 3.5.1(983)
+
+# ============================================================
+# 安装说明
+# 1. 脚本已固定指向 jsDelivr，仓库发布后即可用：
+#    https://cdn.jsdelivr.net/gh/xiaoyinge/Shadowrocket-X-AdBlock@main/loon/x-clean.js
+#    换用户或改仓库名时，同步改 [Script] 里的地址。
+# 2. Loon → 配置 → 插件 → 添加，填入本文件 URL 或选择本地文件。
+# 3. 首次启用会要求安装并信任 CA 证书（MitM），按提示在
+#    「设置 → 通用 → 关于本机 → 证书信任设置」中开启。
+# ============================================================
+
+[Argument]
+enable_ads = switch,true,tag=去除信息流广告,desc=移除时间线、评论区、搜索页、趋势页里的推广内容
+hide_recs = switch,false,tag=隐藏推荐关注模块,desc=顺带移除 who to follow 一类推荐模块，更清爽但可能影响发现新账号
+telemetry = switch,true,tag=拦截 Jot 埋点上报,desc=本地直接应答埋点请求，不上报浏览与互动行为，省一点流量
+script_timeout = input,"10",tag=脚本超时,desc=单位秒，弱网下可调到 20
+
+# -------- 可选：网络优化参数（取消注释后生效，作用于全局）--------
+# 插件里的 General 只会「追加」条目，不会覆盖主配置。
+# [General]
+# dns-server = 223.5.5.5,119.29.29.29,1.1.1.1
+# doh-server = https://doh.pub/dns-query,https://dns.alidns.com/dns-query
+# real-ip = *.x.com,*.twimg.com,*.twitter.com
+
+[Rule]
+# 广告投放与统计域名：不承载正文和媒体，可安全 REJECT
+DOMAIN-SUFFIX,ads-api.x.com,REJECT
+DOMAIN-SUFFIX,ads.x.com,REJECT
+DOMAIN-SUFFIX,ads-api.twitter.com,REJECT
+DOMAIN-SUFFIX,ads.twitter.com,REJECT
+DOMAIN-SUFFIX,ads-twitter.com,REJECT
+DOMAIN-SUFFIX,analytics.x.com,REJECT
+DOMAIN-SUFFIX,analytics.twitter.com,REJECT
+
+[Rewrite]
+# Jot 客户端埋点：直接本地应答，断掉上报与重试
+request if ${telemetry} == true && ${url} ~= /\/jot\/client_event/ then reject_dict(200)
+request if ${telemetry} == true && ${url} ~= /\/live_pipeline\/events/ then reject_dict(200)
+
+[Script]
+# GraphQL 时间线类接口统一交给脚本处理，按 $argument 开关工作
+response if ${enable_ads} == true && ${url} ~= /^https?:\/\/(?:x\.com|twitter\.com|api\.x\.com|api\.twitter\.com)\/i\/api\/graphql\/[^\/]+\/(?:HomeTimeline|HomeLatestTimeline|TweetDetail|SearchTimeline|ListLatestTweetsTimeline|ListTweetsTimeline|CommunityTweetsTimeline|CommunityTweetSearchModuleQuery|UserTweets|UserTweetsAndReplies|UserMedia|ConnectTabTimeline|NotificationsTimeline|Bookmarks|GenericTimelineById|Guide)/ then script("https://cdn.jsdelivr.net/gh/xiaoyinge/Shadowrocket-X-AdBlock@main/loon/x-clean.js", {${enable_ads}, ${hide_recs}, ${telemetry}}) with requires_body=true, timeout=${script_timeout}, tag="X 去广告"
+
+[Mitm]
+hostname = x.com,twitter.com,api.x.com,api.twitter.com
