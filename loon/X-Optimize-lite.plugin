@@ -1,0 +1,46 @@
+#!name = X（Twitter）去广告 · 轻量版（无远程脚本）
+#!desc = 只靠域名规则 + Loon 内置 jq 清洗，不下载任何远程脚本。适合远程脚本拉取失败导致请求卡死的环境。
+#!author = YG
+#!homepage = https://github.com/xiaoyinge/Shadowrocket-X-AdBlock
+#!date = 2026-11-09
+#!tag = 去广告,X,轻量
+#!type = normal
+#!loon_version = 3.5.1(983)
+
+# ============================================================
+# 与完整版的区别：
+#   完整版 [Script] 需要 Loon 下载远程 js，下载失败会让该请求直接失败
+#   （表现为「帖子暂时无法载入」）。
+#   本版本用 Loon 内置 jq 处理 JSON，不依赖任何网络下载，最稳。
+# 代价：只覆盖首页/关注/详情/搜索四条主链路，覆盖面略窄于完整版。
+# ============================================================
+
+[Argument]
+enable_ads = switch,true,tag=去除信息流广告
+telemetry = switch,true,tag=拦截 Jot 埋点
+
+[Rule]
+DOMAIN-SUFFIX,ads-api.x.com,REJECT
+DOMAIN-SUFFIX,ads.x.com,REJECT
+DOMAIN-SUFFIX,ads-api.twitter.com,REJECT
+DOMAIN-SUFFIX,ads.twitter.com,REJECT
+DOMAIN-SUFFIX,ads-twitter.com,REJECT
+DOMAIN-SUFFIX,analytics.x.com,REJECT
+DOMAIN-SUFFIX,analytics.twitter.com,REJECT
+
+[Rewrite]
+# 埋点：本地应答，不依赖任何下载
+request if ${telemetry} == true && ${url} ~= /\/jot\/client_event/ then reject_dict(200)
+request if ${telemetry} == true && ${url} ~= /\/live_pipeline\/events/ then reject_dict(200)
+
+# 首页 / 关注：删掉带 promotedMetadata 的条目
+response if ${enable_ads} == true && ${url} ~= /\/(HomeTimeline|HomeLatestTimeline)\?/ then response.json.jq("if .data.home.home_timeline_urt then .data.home.home_timeline_urt.instructions |= map(if .entries then .entries |= map(select(.content.itemContent.promotedMetadata == null)) else . end) else . end")
+
+# 推文详情
+response if ${enable_ads} == true && ${url} ~= /\/TweetDetail\?/ then response.json.jq("if .data.threaded_conversation_with_injections_v2 then .data.threaded_conversation_with_injections_v2.instructions |= map(if .entries then .entries |= map(select(.content.itemContent.promotedMetadata == null)) else . end) else . end")
+
+# 搜索
+response if ${enable_ads} == true && ${url} ~= /\/SearchTimeline\?/ then response.json.jq("if .data.search_by_raw_query.search_timeline.timeline then .data.search_by_raw_query.search_timeline.timeline.instructions |= map(if .entries then .entries |= map(select(.content.itemContent.promotedMetadata == null)) else . end) else . end")
+
+[Mitm]
+hostname = x.com,twitter.com,api.x.com,api.twitter.com
