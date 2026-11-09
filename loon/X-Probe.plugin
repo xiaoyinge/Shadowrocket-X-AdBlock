@@ -1,0 +1,25 @@
+#!name = X 请求探针（排查用，不修改任何流量）
+#!desc = 把 X 相关请求逐条打印到 Loon 日志，用来确认 HomeTimeline 有没有发出来、插件有没有命中。只记日志，不改请求也不改响应。
+#!author = YG
+#!homepage = https://github.com/xiaoyinge/Shadowrocket-X-AdBlock
+#!date = 2026-11-09
+#!tag = 排查,X
+#!type = normal
+#!loon_version = 3.5.1(983)
+
+# ============================================================
+# 用法
+# 1. 启用本插件（可与正式插件同时启用），打开 Loon。
+# 2. 回到 X，下拉刷新一次首页，等 10 秒。
+# 3. Loon → 日志，筛选 [X-Probe] 关键字。
+# 4. 看有没有 ">>> 时间线类请求命中"。
+#    有  → 请求正常发出，问题在脚本/改写。
+#    没有 → 请求根本没发出，问题在 X 客户端或网络，跟插件无关。
+# 排查完请关闭本插件，它只为排查存在。
+# ============================================================
+
+[Script]
+request if ${url} ~= /^https?:\/\/(?:x\.com|twitter\.com|api\.x\.com|api\.twitter\.com|abs\.twimg\.com|pbs\.twimg\.com)\// then script("https://cdn.jsdelivr.net/gh/xiaoyinge/Shadowrocket-X-AdBlock@main/loon/x-probe.js", {}) with tag="X 请求探针"
+
+[Mitm]
+hostname = x.com,twitter.com,api.x.com,api.twitter.com
