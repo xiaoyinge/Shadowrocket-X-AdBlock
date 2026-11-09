@@ -1,0 +1,20 @@
+#!name = X 测试 1：只有 3 条域名拦截
+#!desc = 只有 3 条 REJECT 规则，没有 Mitm、没有 Script、没有 Rewrite、没有 General（特别是不含 skip-proxy）。用来隔离 skip-proxy 的影响。
+#!author = YG
+#!date = 2026-11-09
+#!tag = 测试,X
+#!type = normal
+#!loon_version = 3.5.1(983)
+
+# ============================================================
+# 与 X-RuleOnly 的区别：
+#   1. 删掉了 [General] skip-proxy（这是 X-RuleOnly 里唯一的额外变量）
+#   2. REJECT 从 9 条减到 3 条，且不包含 ads-api.x.com
+#      （上一版抓包里 ads-api.x.com 的 OPTIONS 预检被 REJECT 后无响应，
+#        可能导致客户端进入错误分支）
+# ============================================================
+
+[Rule]
+DOMAIN-SUFFIX,ads-twitter.com,REJECT
+DOMAIN-SUFFIX,analytics.twitter.com,REJECT
+DOMAIN-SUFFIX,analytics.x.com,REJECT
